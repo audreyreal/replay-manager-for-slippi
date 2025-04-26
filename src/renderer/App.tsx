@@ -417,7 +417,9 @@ function Hello() {
                 (player) => player.playerType === 0 || player.playerType === 1,
               ),
             )
-            // Fix for issue #126
+            // fix for issue #126: previously, port buttons were only active if *all* selected replays had a player in that port.
+            // changed the reduce logic to activate a port button if *at least one* selected replay has a player in that port,
+            // by initializing the accumulator to [false, false, false, false] and using the logical OR (||) operator.
             .reduce(
               (accArr, curArr) => [
                 accArr[0] || curArr[0],

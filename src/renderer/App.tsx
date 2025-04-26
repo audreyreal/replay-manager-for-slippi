@@ -417,14 +417,15 @@ function Hello() {
                 (player) => player.playerType === 0 || player.playerType === 1,
               ),
             )
+            // Fix for issue #126
             .reduce(
               (accArr, curArr) => [
-                accArr[0] && curArr[0],
-                accArr[1] && curArr[1],
-                accArr[2] && curArr[2],
-                accArr[3] && curArr[3],
+                accArr[0] || curArr[0],
+                accArr[1] || curArr[1],
+                accArr[2] || curArr[2],
+                accArr[3] || curArr[3],
               ],
-              [true, true, true, true],
+              [false, false, false, false],
             )
         : [false, false, false, false];
     const teamIndiciesArr = [

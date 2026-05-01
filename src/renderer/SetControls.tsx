@@ -34,15 +34,21 @@ import {
   StartggSet,
   State,
   Stream,
+  ParryggGame,
 } from '../common/types';
 import {
   characterNames,
   characterStartggIds,
+  characterParryggSlugs,
   isValidCharacter,
   stageNames,
   stageStartggIds,
+  stageParryggSlugs,
   startggCharacterIds,
   startggStageIds,
+  parryggSlugToCharacterId,
+  parryggSlugToStageId,
+  characterParryggVariantColors,
 } from '../common/constants';
 import LabeledCheckbox from './LabeledCheckbox';
 import getCharacterIcon from './getCharacterIcon';
@@ -250,6 +256,7 @@ export default function SetControls({
   reportParryggSet: (
     result: MatchResult.AsObject,
     originalSet: Set,
+    games?: ParryggGame[],
   ) => Promise<Set | undefined>;
   reportOfflineModeSet: (set: StartggSet) => Promise<Set>;
   setReportSettings: (newReportSettings: ReportSettings) => Promise<void>;
@@ -312,6 +319,7 @@ export default function SetControls({
         },
       ],
     });
+  const [parryggGames, setParryggGames] = useState<ParryggGame[]>([]);
 
   const [enforcerResultOpen, setEnforcerResultOpen] = useState(false);
   const [enforceState, setEnforceState] = useState<EnforceState>({
@@ -474,6 +482,95 @@ export default function SetControls({
     };
   };
 
+  const getParryggGameData = (): ParryggGame[] => {
+    if (isDq) {
+      return [];
+    }
+
+    const games: ParryggGame[] = [];
+    selectedReplays.forEach((replay, i) => {
+      const gameWinner = replay.players.find((player) => player.isWinner);
+      if (!gameWinner) {
+        return;
+      }
+
+      const game: ParryggGame = {
+        index: i + 1,
+        stageSlug: stageParryggSlugs.get(replay.stageId) || '',
+        slots: [],
+      };
+
+      const validPlayers = replay.players.filter(
+        (player) =>
+          isValid(player) && isValidCharacter(player.externalCharacterId),
+      );
+
+      const slot0Winner = validPlayers.find(
+        (player) =>
+          player.playerOverrides.entrantId === set.entrant1Id &&
+          player.isWinner,
+      );
+      const slot1Winner = validPlayers.find(
+        (player) =>
+          player.playerOverrides.entrantId === set.entrant2Id &&
+          player.isWinner,
+      );
+
+      const entrant1Players = validPlayers.filter(
+        (player) =>
+          player.playerOverrides.entrantId === set.entrant1Id,
+      );
+      const entrant2Players = validPlayers.filter(
+        (player) =>
+          player.playerOverrides.entrantId === set.entrant2Id,
+      );
+
+      const slot0Score = entrant1Players.length > 0
+        ? entrant1Players[0].stocksRemaining
+        : 0;
+      const slot1Score = entrant2Players.length > 0
+        ? entrant2Players[0].stocksRemaining
+        : 0;
+
+      game.slots.push({
+        slot: 0,
+        score: slot0Score,
+        placement: slot0Winner ? 1 : 2,
+        participants: entrant1Players.map((player, idx) => ({
+          userId: set.entrant1Participants[idx]?.id || '',
+          characterSlug:
+            characterParryggSlugs.get(player.externalCharacterId) || '',
+          costumeIndex: smuggleCostumeIndex
+            ? player.costumeIndex
+            : undefined,
+          colorName: characterParryggVariantColors
+            .get(player.externalCharacterId)
+            ?.at(player.costumeIndex),
+        })),
+      });
+
+      game.slots.push({
+        slot: 1,
+        score: slot1Score,
+        placement: slot1Winner ? 1 : 2,
+        participants: entrant2Players.map((player, idx) => ({
+          userId: set.entrant2Participants[idx]?.id || '',
+          characterSlug:
+            characterParryggSlugs.get(player.externalCharacterId) || '',
+          costumeIndex: smuggleCostumeIndex
+            ? player.costumeIndex
+            : undefined,
+          colorName: characterParryggVariantColors
+            .get(player.externalCharacterId)
+            ?.at(player.costumeIndex),
+        })),
+      });
+
+      games.push(game);
+    });
+    return games;
+  };
+
   let deleteOverrideReason = '';
   if (set.fullRoundText === 'Grand Final' && hasRemainingReplays) {
     deleteOverrideReason = 'possible Grand Finals Reset replays detected';
@@ -519,6 +616,7 @@ export default function SetControls({
               setChallongeMatchItems(getChallongeMatchItems());
             } else if (mode === Mode.PARRYGG) {
               setParryggMatchResult(getMatchResult());
+              setParryggGames(getParryggGameData());
             }
             if (
               (selectedReplaysWithEnforceErrors.length > 0 &&
@@ -608,8 +706,175 @@ export default function SetControls({
           </Stack>
           <Divider sx={{ marginTop: '16px' }} />
           <Stack flexGrow={1}>
-            {(mode === Mode.STARTGG || mode === Mode.OFFLINE_MODE) &&
-              startggSet.gameData.map((gameData) => (
+            {(mode === Mode.STARTGG ||
+              mode === Mode.OFFLINE_MODE ||
+              mode === Mode.PARRYGG) && (
+              <>
+                {mode === Mode.PARRYGG &&
+                  parryggGames.map((game) => {
+                    const characterId0 =
+                      parryggSlugToCharacterId.get(
+                        game.slots[0]?.participants[0]?.characterSlug,
+                      ) ?? 31;
+                    const characterId1 =
+                      parryggSlugToCharacterId.get(
+                        game.slots[1]?.participants[0]?.characterSlug,
+                      ) ?? 31;
+                    const costume0 =
+                      game.slots[0]?.participants[0]?.costumeIndex;
+                    const costume1 =
+                      game.slots[1]?.participants[0]?.costumeIndex;
+                    const slot0Score = game.slots[0]?.score ?? 0;
+                    const slot1Score = game.slots[1]?.score ?? 0;
+                    const slot0Won = game.slots[0]?.placement === 1;
+                    const slot1Won = game.slots[1]?.placement === 1;
+
+                    return (
+                      <Stack key={game.index} marginTop="8px">
+                        {game.stageSlug && (
+                          <Box
+                            sx={{ typography: 'caption' }}
+                            textAlign="center"
+                          >
+                            {stageNames.get(
+                              parryggSlugToStageId.get(game.stageSlug)!,
+                            )}
+                          </Box>
+                        )}
+                        <Stack direction="row" sx={{ typography: 'body2' }}>
+                          <EntrantSection
+                            borderRight={1}
+                            direction="row-reverse"
+                          >
+                            <Stack
+                              alignItems="center"
+                              direction="row-reverse"
+                              paddingTop="4px"
+                              paddingBottom="4px"
+                              paddingLeft={
+                                set.entrant1Participants.length === 1
+                                  ? '4px'
+                                  : undefined
+                              }
+                              style={{
+                                backgroundColor: slot0Won
+                                  ? bgColor
+                                  : undefined,
+                              }}
+                            >
+                              <EntrantScore textAlign="right">
+                                {slot0Won && 'W'}
+                              </EntrantScore>
+                              <Avatar
+                                alt={characterNames.get(characterId0)}
+                                src={getCharacterIconInner(
+                                  characterId0,
+                                  costume0,
+                                )}
+                                sx={{ height: 24, width: 24 }}
+                                variant="square"
+                              />
+                            </Stack>
+                            {slot0Won && slot0Score > 0 && (
+                              <Tooltip
+                                arrow
+                                placement="left"
+                                title={`${slot0Score} stock`}
+                              >
+                                <Stack
+                                  alignItems="end"
+                                  direction="row"
+                                  gap="1px"
+                                  marginRight="8px"
+                                  height="100%"
+                                >
+                                  {[...Array(slot0Score).keys()].map(
+                                    () => (
+                                      <Avatar
+                                        src={getCharacterIconInner(
+                                          characterId0,
+                                          costume0,
+                                        )}
+                                        sx={{
+                                          height: 12,
+                                          width: 12,
+                                        }}
+                                        variant="square"
+                                      />
+                                    ),
+                                  )}
+                                </Stack>
+                              </Tooltip>
+                            )}
+                          </EntrantSection>
+                          <EntrantSection borderLeft={1} direction="row">
+                            <Stack
+                              alignItems="center"
+                              direction="row"
+                              paddingTop="4px"
+                              paddingBottom="4px"
+                              paddingRight={
+                                set.entrant2Participants.length === 1
+                                  ? '4px'
+                                  : undefined
+                              }
+                              style={{
+                                backgroundColor: slot1Won
+                                  ? bgColor
+                                  : undefined,
+                              }}
+                            >
+                              <EntrantScore>
+                                {slot1Won && 'W'}
+                              </EntrantScore>
+                              <Avatar
+                                alt={characterNames.get(characterId1)}
+                                src={getCharacterIconInner(
+                                  characterId1,
+                                  costume1,
+                                )}
+                                sx={{ height: 24, width: 24 }}
+                                variant="square"
+                              />
+                            </Stack>
+                            {slot1Won && slot1Score > 0 && (
+                              <Tooltip
+                                arrow
+                                placement="right"
+                                title={`${slot1Score} stock`}
+                              >
+                                <Stack
+                                  alignItems="end"
+                                  direction="row"
+                                  gap="1px"
+                                  marginLeft="8px"
+                                  height="100%"
+                                >
+                                  {[...Array(slot1Score).keys()].map(
+                                    () => (
+                                      <Avatar
+                                        src={getCharacterIconInner(
+                                          characterId1,
+                                          costume1,
+                                        )}
+                                        sx={{
+                                          height: 12,
+                                          width: 12,
+                                        }}
+                                        variant="square"
+                                      />
+                                    ),
+                                  )}
+                                </Stack>
+                              </Tooltip>
+                            )}
+                          </EntrantSection>
+                        </Stack>
+                      </Stack>
+                    );
+                  })}
+                {(mode === Mode.STARTGG || mode === Mode.OFFLINE_MODE) &&
+                  startggSet.gameData.map((gameData) => (
                 <Stack key={gameData.gameNum} marginTop="8px">
                   {gameData.stageId && (
                     <Box sx={{ typography: 'caption' }} textAlign="center">
@@ -848,6 +1113,8 @@ export default function SetControls({
                   </Stack>
                 </Stack>
               ))}
+              </>
+              )}
           </Stack>
           <Divider sx={{ marginTop: '8px' }} />
           <Stack justifyContent="flex-end">
@@ -936,7 +1203,11 @@ export default function SetControls({
                     challongeMatchItems,
                   );
                 } else if (mode === Mode.PARRYGG) {
-                  updatedSet = await reportParryggSet(parryggMatchResult, set);
+                  updatedSet = await reportParryggSet(
+                    parryggMatchResult,
+                    set,
+                    parryggGames,
+                  );
                 } else if (mode === Mode.OFFLINE_MODE) {
                   updatedSet = await reportOfflineModeSet(startggSet);
                 }

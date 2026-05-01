@@ -197,6 +197,104 @@ export const startggStageIds = new Map(
   Array.from(stageStartggIds.entries()).map(([key, value]) => [value, key]),
 );
 
+export const characterParryggSlugs = new Map([
+  [0, 'captain-falcon'],
+  [1, 'donkey-kong'],
+  [2, 'fox'],
+  [3, 'mr-game-and-watch'],
+  [4, 'kirby'],
+  [5, 'bowser'],
+  [6, 'link'],
+  [7, 'luigi'],
+  [8, 'mario'],
+  [9, 'marth'],
+  [10, 'mewtwo'],
+  [11, 'ness'],
+  [12, 'peach'],
+  [13, 'pikachu'],
+  [14, 'ice-climbers'],
+  [15, 'jigglypuff'],
+  [16, 'samus'],
+  [17, 'yoshi'],
+  [18, 'zelda'],
+  [19, 'sheik'],
+  [20, 'falco'],
+  [21, 'young-link'],
+  [22, 'doctor-mario'],
+  [23, 'roy'],
+  [24, 'pichu'],
+  [25, 'ganondorf'],
+]);
+
+export const parryggSlugToCharacterId = new Map(
+  Array.from(characterParryggSlugs.entries()).map(([key, value]) => [value, key]),
+);
+
+export const stageParryggSlugs = new Map([
+  [2, 'fountain-of-dreams'],
+  [3, 'pokmon-stadium'],
+  [4, 'peachs-castle'],
+  [5, 'kongo-jungle'],
+  [6, 'brinstar'],
+  [7, 'corneria'],
+  [8, 'yoshis-story'],
+  [9, 'onett'],
+  [10, 'mute-city'],
+  [11, 'rainbow-cruise'],
+  [12, 'jungle-japes'],
+  [13, 'great-bay'],
+  [14, 'temple'],
+  [15, 'brinstar-depths'],
+  [16, 'yoshis-island'],
+  [17, 'green-greens'],
+  [18, 'fourside'],
+  [19, 'mushroom-kingdom'],
+  [20, 'mushroom-kingdom-ii'],
+  [22, 'venom'],
+  [23, 'pok-floats'],
+  [24, 'big-blue'],
+  [25, 'icicle-mountain'],
+  [27, 'flat-zone'],
+  [28, 'dream-land'],
+  [29, 'yoshis-island-64'],
+  [30, 'jungle-falls'],
+  [31, 'battlefield'],
+  [32, 'final-destination'],
+]);
+
+export const parryggSlugToStageId = new Map(
+  Array.from(stageParryggSlugs.entries()).map(([key, value]) => [value, key]),
+);
+
+export const characterParryggVariantColors = new Map([
+  [0, ['default', 'black', 'red', 'white', 'green', 'blue']],
+  [1, ['default', 'black', 'red', 'blue', 'green']],
+  [2, ['default', 'red', 'blue', 'green']],
+  [3, ['default', 'red', 'blue', 'green']],
+  [4, ['default', 'red', 'white', 'blue', 'green', 'yellow']],
+  [5, ['default', 'red', 'blue', 'black']],
+  [6, ['default', 'red', 'blue', 'black', 'white']],
+  [7, ['default', 'red', 'blue', 'white']],
+  [8, ['default', 'red', 'blue', 'yellow', 'black']],
+  [9, ['default', 'red', 'green', 'blue', 'black']],
+  [10, ['default', 'red', 'blue', 'green']],
+  [11, ['default', 'red', 'blue', 'green']],
+  [12, ['default', 'red', 'blue', 'white', 'green']],
+  [13, ['default', 'red', 'blue', 'green']],
+  [14, ['default', 'red', 'blue', 'green']],
+  [15, ['default', 'red', 'blue', 'green', 'gold']],
+  [16, ['default', 'red', 'blue', 'pink', 'green']],
+  [17, ['default', 'red', 'blue', 'green', 'pink', 'cyan']],
+  [18, ['default', 'red', 'blue', 'green', 'white']],
+  [19, ['default', 'red', 'blue', 'green', 'white']],
+  [20, ['default', 'red', 'blue', 'green']],
+  [21, ['default', 'red', 'blue', 'black', 'white']],
+  [22, ['default', 'red', 'blue', 'green', 'black']],
+  [23, ['default', 'red', 'blue', 'green', 'gold']],
+  [24, ['default', 'red', 'blue', 'green']],
+  [25, ['default', 'red', 'blue', 'green', 'purple']],
+]);
+
 export const frameMsDivisor = 0.05994;
 export const highlightColor = '#ffee58';
 

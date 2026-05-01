@@ -205,6 +205,26 @@ export type StartggSet = {
   gameData: StartggGame[];
 };
 
+export type ParryggGame = {
+  index: number;
+  stageSlug: string;
+  slots: ParryggGameSlot[];
+};
+
+export type ParryggGameSlot = {
+  slot: number;
+  score: number;
+  placement?: number;
+  participants: ParryggGameParticipant[];
+};
+
+export type ParryggGameParticipant = {
+  userId: string;
+  characterSlug: string;
+  costumeIndex?: number;
+  colorName?: string;
+};
+
 export type ChallongeMatchItem = {
   participant_id: string;
   score_set: string;

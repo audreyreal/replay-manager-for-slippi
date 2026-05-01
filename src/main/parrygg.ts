@@ -7,12 +7,21 @@ import {
   AdminFilter,
   AdminFilterPermission,
   MatchServiceClient,
+  MatchGameServiceClient,
   StartMatchRequest,
   SetMatchResultRequest,
   MatchResult,
   MatchResultSlotMutation,
+  MatchGameMutation,
+  GameSlotMutation,
+  GameParticipantMutation,
+  CharacterSelection,
+  StageSelection,
+  BatchReportMatchGamesRequest,
   SlugType,
   MatchState,
+  MatchGameState,
+  SlotState,
   BracketServiceClient,
   GetBracketRequest,
   EventServiceClient,
@@ -27,6 +36,7 @@ import {
   Seed,
   BracketType,
 } from '@parry-gg/client';
+import * as google_protobuf_struct_pb from 'google-protobuf/google/protobuf/struct_pb';
 import XMLHttpRequest from 'xhr2';
 import {
   ParryggBracket,
@@ -39,6 +49,7 @@ import {
   SelectedPhase,
   SelectedPhaseGroup,
   SelectedSetChain,
+  ParryggGame,
 } from '../common/types';
 
 // XMLHttpRequest polyfill for grpcweb requests
@@ -62,6 +73,7 @@ let selectedSetId: string | undefined;
 const PARRYGG_API_BASE = 'https://grpcweb.parry.gg';
 const tournamentClient = new TournamentServiceClient(PARRYGG_API_BASE);
 const matchClient = new MatchServiceClient(PARRYGG_API_BASE);
+const matchGameClient = new MatchGameServiceClient(PARRYGG_API_BASE);
 const bracketClient = new BracketServiceClient(PARRYGG_API_BASE);
 const eventClient = new EventServiceClient(PARRYGG_API_BASE);
 const phaseClient = new PhaseServiceClient(PARRYGG_API_BASE);
@@ -565,7 +577,16 @@ export async function reportParryggSet(
   apiKey: string,
   setId: string,
   result: MatchResult.AsObject,
+  games?: ParryggGame[],
 ): Promise<Set | undefined> {
+  if (games && games.length > 0) {
+    try {
+      await reportParryggGames(apiKey, setId, games);
+    } catch (e) {
+      console.error('Failed to report parry.gg game data:', e);
+    }
+  }
+
   const matchResult = createMatchResultFromMatchResultObject(result);
 
   const request = new SetMatchResultRequest();
@@ -573,5 +594,75 @@ export async function reportParryggSet(
   request.setResult(matchResult);
 
   await matchClient.setMatchResult(request, createAuthMetadata(apiKey));
+
   return getSelectedParryggSet();
+}
+
+export async function reportParryggGames(
+  apiKey: string,
+  matchId: string,
+  games: ParryggGame[],
+): Promise<void> {
+  const mutations = games.map((game) => createMatchGameMutation(game));
+
+  const request = new BatchReportMatchGamesRequest();
+  request.setMatchId(matchId);
+  request.setMatchGamesList(mutations);
+  request.setFinalize(false);
+
+  await matchGameClient.batchReportMatchGames(
+    request,
+    createAuthMetadata(apiKey),
+  );
+}
+
+function createMatchGameMutation(game: ParryggGame): MatchGameMutation {
+  const mutation = new MatchGameMutation();
+  mutation.setIndex(game.index);
+  mutation.setState(MatchGameState.MATCH_GAME_STATE_COMPLETED);
+
+  if (game.stageSlug) {
+    const stageSelection = new StageSelection();
+    stageSelection.setStageSlug(game.stageSlug);
+    mutation.setStagesList([stageSelection]);
+  }
+
+  const slotMutations = game.slots.map((slot) => {
+    const slotMutation = new GameSlotMutation();
+    slotMutation.setSlot(slot.slot);
+    slotMutation.setScore(slot.score);
+    slotMutation.setPlacement(slot.placement || 2);
+    slotMutation.setState(SlotState.SLOT_STATE_NUMERIC);
+
+    const participants = slot.participants
+      .filter((p) => p.userId && p.characterSlug)
+      .map((participant) => {
+        const participantMutation = new GameParticipantMutation();
+        participantMutation.setUserId(participant.userId);
+
+        const characterSelection = new CharacterSelection();
+        characterSelection.setCharacterSlug(participant.characterSlug);
+
+        if (participant.colorName && participant.colorName !== 'default') {
+          const variant = new google_protobuf_struct_pb.Struct();
+          variant.getFieldsMap().set(
+            'color',
+            google_protobuf_struct_pb.Value.fromJavaScript(
+              participant.colorName,
+            ),
+          );
+          characterSelection.setVariant(variant);
+        }
+
+        participantMutation.setCharactersList([characterSelection]);
+
+        return participantMutation;
+      });
+    slotMutation.setParticipantsList(participants);
+
+    return slotMutation;
+  });
+  mutation.setSlotsList(slotMutations);
+
+  return mutation;
 }

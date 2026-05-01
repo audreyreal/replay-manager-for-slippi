@@ -43,6 +43,7 @@ import {
   Set,
   StartggGame,
   StartggSet,
+  ParryggGame,
 } from '../common/types';
 import {
   getEvent,
@@ -1278,11 +1279,21 @@ export default function setupIPCs(
   ipcMain.removeHandler('reportParryggSet');
   ipcMain.handle(
     'reportParryggSet',
-    async (event, setId: string, result: MatchResult.AsObject) => {
+    async (
+      event,
+      setId: string,
+      result: MatchResult.AsObject,
+      games?: ParryggGame[],
+    ) => {
       if (!parryggApiKey) {
         throw new Error('Please set parry.gg API key.');
       }
-      const updatedSet = await reportParryggSet(parryggApiKey, setId, result);
+      const updatedSet = await reportParryggSet(
+        parryggApiKey,
+        setId,
+        result,
+        games,
+      );
       await getParryggBracket(
         parryggApiKey,
         assertString(selectedPhaseGroupId),

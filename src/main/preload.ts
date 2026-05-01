@@ -27,6 +27,7 @@ import {
   SelectedSetChain,
   OfflineModeStatus,
   StartggGame,
+  ParryggGame,
 } from '../common/types';
 
 const electronHandler = {
@@ -228,7 +229,9 @@ const electronHandler = {
   reportParryggSet: (
     setId: string,
     result: MatchResult.AsObject,
-  ): Promise<Set> => ipcRenderer.invoke('reportParryggSet', setId, result),
+    games?: ParryggGame[],
+  ): Promise<Set> =>
+    ipcRenderer.invoke('reportParryggSet', setId, result, games),
   getOfflineModeStatus: (): Promise<OfflineModeStatus> =>
     ipcRenderer.invoke('getOfflineModeStatus'),
   getOfflineModeHosts: (): Promise<string[]> =>

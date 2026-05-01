@@ -22,6 +22,7 @@ import {
   StartggGame,
   StartggSet,
   State,
+  ParryggGame,
 } from '../common/types';
 import { assertInteger, assertString } from '../common/asserts';
 
@@ -54,6 +55,48 @@ function createStartggGameData(
     }
   }
   return gameData;
+}
+
+function createParryggGameData(
+  entrant1Score: number,
+  entrant2Score: number,
+): ParryggGame[] {
+  const games: ParryggGame[] = [];
+  const totalGames = entrant1Score + entrant2Score;
+  if (totalGames === 0) {
+    return games;
+  }
+
+  for (let n = 1; n <= totalGames; n += 1) {
+    let slot0Won = false;
+    let slot1Won = false;
+    if (entrant1Score > entrant2Score) {
+      slot0Won = n <= entrant1Score;
+      slot1Won = n > entrant1Score;
+    } else {
+      slot1Won = n <= entrant2Score;
+      slot0Won = n > entrant2Score;
+    }
+    games.push({
+      index: n,
+      stageSlug: '',
+      slots: [
+        {
+          slot: 0,
+          score: 0,
+          placement: slot0Won ? 1 : 2,
+          participants: [],
+        },
+        {
+          slot: 1,
+          score: 0,
+          placement: slot1Won ? 1 : 2,
+          participants: [],
+        },
+      ],
+    });
+  }
+  return games;
 }
 
 const EntrantNames = styled(Stack)`
@@ -89,6 +132,7 @@ export default function ManualReport({
   reportParryggSet: (
     result: MatchResult.AsObject,
     originalSet: Set,
+    games?: ParryggGame[],
   ) => Promise<Set | undefined>;
   reportOfflineModeSet: (set: StartggSet) => Promise<Set>;
   selectedSet: Set;
@@ -660,7 +704,11 @@ export default function ManualReport({
                     challongeMatchItems,
                   );
                 } else if (mode === Mode.PARRYGG) {
-                  await reportParryggSet(parryggSetResult, selectedSet);
+                  await reportParryggSet(
+                    parryggSetResult,
+                    selectedSet,
+                    createParryggGameData(entrant1Score, entrant2Score),
+                  );
                 } else if (mode === Mode.OFFLINE_MODE) {
                   await reportOfflineModeSet(getStartggSet());
                 }

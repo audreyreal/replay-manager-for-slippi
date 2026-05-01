@@ -90,6 +90,7 @@ import {
   State,
   Stream,
   Tournament,
+  ParryggGame,
 } from '../common/types';
 import { DraggableChip, DroppableChip } from './DragAndDrop';
 import ReplayList, { SkewReplay } from './ReplayList';
@@ -1364,10 +1365,15 @@ function Hello() {
     [resetDq],
   );
   const reportParryggSet = useCallback(
-    async (result: MatchResult.AsObject, originalSet: Set) => {
+    async (
+      result: MatchResult.AsObject,
+      originalSet: Set,
+      games?: ParryggGame[],
+    ) => {
       const updatedSet = await window.electron.reportParryggSet(
         assertString(originalSet.id),
         result,
+        games,
       );
       resetDq();
       return updatedSet;
